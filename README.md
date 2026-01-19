@@ -1,0 +1,39 @@
+# rustfuck
+
+[![CI](https://github.com/matslina/rustfuck/actions/workflows/ci.yml/badge.svg)](https://github.com/matslina/rustfuck/actions/workflows/ci.yml)
+
+A brainfuck interpreter in Rust.
+
+## Build
+
+```
+cargo build --release
+```
+
+## Usage
+
+```
+rustfuck program.b
+```
+
+Input/output can be redirected to files:
+
+```
+rustfuck program.b -i input.txt -o output.txt
+```
+
+### Options
+
+- `-m, --memory <SIZE>` - Tape size (default: 30000)
+- `-l, --limit <OPS>` - Max operations before aborting
+- `-e, --eof <MODE>` - EOF behavior: `zero`, `unchanged` (default), or `max`
+
+### Batch mode
+
+For running multiple inputs against the same program:
+
+```
+echo '{"input": [72, 101, 108, 108, 111]}' | rustfuck program.b --batch
+```
+
+Reads newline-delimited JSON from stdin, outputs one JSON result per line.
