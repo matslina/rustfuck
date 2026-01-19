@@ -133,12 +133,7 @@ pub(crate) fn compile(source: &str) -> Result<(Vec<Op>, Vec<Span>), CompileError
             b'[' => {
                 // If previous op is Set(0), Close, or Scan, this loop will
                 // never be entered (current cell is guaranteed to be 0).
-                let is_dead = match ops.last() {
-                    Some(Op::Set(0)) => true,
-                    Some(Op::Close(_)) => true,
-                    Some(Op::Scan(_)) => true,
-                    _ => false,
-                };
+                let is_dead = matches!(ops.last(), Some(Op::Set(0)) | Some(Op::Close(_)) | Some(Op::Scan(_)));
                 if is_dead {
                     let (new_i, lines, new_col) = skip_loop(source, i + 1);
                     i = new_i;

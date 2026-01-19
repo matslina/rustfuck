@@ -1,7 +1,15 @@
 [package]
 name = "rustfuck"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 memchr = "2.7.6"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"

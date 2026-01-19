@@ -1,4 +1,4 @@
-writes to all of the 65535 available memor cells
+writes to all of the 65535 available memory cells
 
 ++++++++++++++++ 16
 [->++++++++++++++++<]>- 255

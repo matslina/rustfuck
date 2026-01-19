@@ -175,11 +175,14 @@ impl Program {
     pub fn run(
         &self,
         config: &Config,
+        tape: Option<Vec<u8>>,
+        pointer: Option<usize>,
         input: Option<&mut dyn Read>,
         output: Option<&mut dyn Write>,
     ) -> Result<ExecutionResult, ExecutionError> {
-        let tape = vec![0u8; config.tape_size];
-        execute::execute(&self.ops, &self.spans, tape, 0, config, input, output)
+        let tape = tape.unwrap_or_else(|| vec![0u8; config.tape_size]);
+        let pointer = pointer.unwrap_or(0);
+        execute::execute(&self.ops, &self.spans, tape, pointer, config, input, output)
     }
 }
 
@@ -191,7 +194,7 @@ mod tests {
     fn test_hello_world() {
         let program = Program::from_source("++++++++[->++[->++++<]<]>>.----[------>+<]>.").unwrap();
         let mut output = Vec::new();
-        program.run(&Config::default(), None, Some(&mut output)).unwrap();
+        program.run(&Config::default(), None, None, None, Some(&mut output)).unwrap();
         assert_eq!(String::from_utf8(output).unwrap(), "@\n");
     }
 }
