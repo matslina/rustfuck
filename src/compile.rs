@@ -116,7 +116,12 @@ pub(crate) fn compile(source: &str) -> Result<(Vec<Op>, Vec<Span>), CompileError
     let mut col = 1usize;
 
     while i < source.len() {
-        let span = Span { start: i, end: i + 1, line, col };
+        let span = Span {
+            start: i,
+            end: i + 1,
+            line,
+            col,
+        };
         match source[i] {
             b'+' => push_and_compact(&mut ops, &mut spans, Op::Add(1), span),
             b'-' => push_and_compact(&mut ops, &mut spans, Op::Add(255), span),
@@ -133,7 +138,10 @@ pub(crate) fn compile(source: &str) -> Result<(Vec<Op>, Vec<Span>), CompileError
             b'[' => {
                 // If previous op is Set(0), Close, or Scan, this loop will
                 // never be entered (current cell is guaranteed to be 0).
-                let is_dead = matches!(ops.last(), Some(Op::Set(0)) | Some(Op::Close(_)) | Some(Op::Scan(_)));
+                let is_dead = matches!(
+                    ops.last(),
+                    Some(Op::Set(0)) | Some(Op::Close(_)) | Some(Op::Scan(_))
+                );
                 if is_dead {
                     let (new_i, lines, new_col) = skip_loop(source, i + 1);
                     i = new_i;
@@ -228,16 +236,19 @@ mod tests {
     #[test]
     fn test_basic() {
         let (ops, _) = compile(",[+>-.<]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In,
-            Op::Open(7),
-            Op::Add(1),
-            Op::Move(1),
-            Op::Add(255),
-            Op::Out,
-            Op::Move(-1),
-            Op::Close(1),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::In,
+                Op::Open(7),
+                Op::Add(1),
+                Op::Move(1),
+                Op::Add(255),
+                Op::Out,
+                Op::Move(-1),
+                Op::Close(1),
+            ]
+        );
     }
 
     // Arithmetic and pointer movement
@@ -247,141 +258,176 @@ mod tests {
         assert_eq!(ops.len(), 0);
 
         let (ops, _) = compile("++++++++--++>>>>><<>>").unwrap();
-        assert_eq!(ops, vec![
-            Op::Add(8),
-            Op::Move(5),
-        ]);
+        assert_eq!(ops, vec![Op::Add(8), Op::Move(5),]);
 
         let (ops, _) = compile(">>>++--++------->><<<<").unwrap();
-        assert_eq!(ops, vec![
-            Op::Move(3),
-            Op::Add(251),
-            Op::Move(-2),
-        ]);
+        assert_eq!(ops, vec![Op::Move(3), Op::Add(251), Op::Move(-2),]);
 
         let (ops, _) = compile("++-->>>>>------<<+++++++<<<<<").unwrap();
-        assert_eq!(ops, vec![
-            Op::Move(5),
-            Op::Add(250),
-            Op::Move(-2),
-            Op::Add(7),
-            Op::Move(-5),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::Move(5),
+                Op::Add(250),
+                Op::Move(-2),
+                Op::Add(7),
+                Op::Move(-5),
+            ]
+        );
     }
 
     // Arithmetic around u8 overflow
     #[test]
     fn test_add_u8_boundaries() {
-        let src = "+".repeat(254) +
-            &">" + &"+".repeat(255) +
-            &">" + &"+".repeat(256) +
-            &">" + &"+".repeat(257) +
-            &">" + &"+".repeat(258);
+        let src = "+".repeat(254)
+            + &">"
+            + &"+".repeat(255)
+            + &">"
+            + &"+".repeat(256)
+            + &">"
+            + &"+".repeat(257)
+            + &">"
+            + &"+".repeat(258);
         let (ops, _) = compile(&src).unwrap();
-        assert_eq!(ops, vec![
-            Op::Add(254),
-            Op::Move(1), Op::Add(255),
-            Op::Move(2), Op::Add(1),
-            Op::Move(1), Op::Add(2),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::Add(254),
+                Op::Move(1),
+                Op::Add(255),
+                Op::Move(2),
+                Op::Add(1),
+                Op::Move(1),
+                Op::Add(2),
+            ]
+        );
 
-        let src = "-".repeat(1) +
-            &">" + &"-".repeat(2) +
-            &">" + &"-".repeat(3) +
-            &">" + &"-".repeat(254) +
-            &">" + &"-".repeat(255) +
-            &">" + &"-".repeat(256) +
-            &">" + &"-".repeat(257) +
-            &">" + &"-".repeat(258);
+        let src = "-".repeat(1)
+            + &">"
+            + &"-".repeat(2)
+            + &">"
+            + &"-".repeat(3)
+            + &">"
+            + &"-".repeat(254)
+            + &">"
+            + &"-".repeat(255)
+            + &">"
+            + &"-".repeat(256)
+            + &">"
+            + &"-".repeat(257)
+            + &">"
+            + &"-".repeat(258);
         let (ops, _) = compile(&src).unwrap();
-        assert_eq!(ops, vec![
-            Op::Add(255),
-            Op::Move(1), Op::Add(254),
-            Op::Move(1), Op::Add(253),
-            Op::Move(1), Op::Add(2),
-            Op::Move(1), Op::Add(1),
-            Op::Move(2),
-            Op::Add(255),
-            Op::Move(1), Op::Add(254),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::Add(255),
+                Op::Move(1),
+                Op::Add(254),
+                Op::Move(1),
+                Op::Add(253),
+                Op::Move(1),
+                Op::Add(2),
+                Op::Move(1),
+                Op::Add(1),
+                Op::Move(2),
+                Op::Add(255),
+                Op::Move(1),
+                Op::Add(254),
+            ]
+        );
     }
 
     // Nested loops
     #[test]
     fn test_nested_loops() {
         let (ops, _) = compile("+[->++[->++++<]<]>.----[------>+<]>.").unwrap();
-        assert_eq!(ops, vec![
-            Op::Add(1),
-            Op::Open(8),
-            Op::Add(255),
-            Op::Move(1),
-            Op::Add(2),
-            Op::Mul(1, 4),
-            Op::Set(0),
-            Op::Move(-1),
-            Op::Close(1),
-            Op::Move(1),
-            Op::Out,
-            Op::Add(252),
-            Op::Open(17),
-            Op::Add(250),
-            Op::Move(1),
-            Op::Add(1),
-            Op::Move(-1),
-            Op::Close(12),
-            Op::Move(1),
-            Op::Out,
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::Add(1),
+                Op::Open(8),
+                Op::Add(255),
+                Op::Move(1),
+                Op::Add(2),
+                Op::Mul(1, 4),
+                Op::Set(0),
+                Op::Move(-1),
+                Op::Close(1),
+                Op::Move(1),
+                Op::Out,
+                Op::Add(252),
+                Op::Open(17),
+                Op::Add(250),
+                Op::Move(1),
+                Op::Add(1),
+                Op::Move(-1),
+                Op::Close(12),
+                Op::Move(1),
+                Op::Out,
+            ]
+        );
     }
 
     // Clear loops -> Set(0)
     #[test]
     fn test_clear_loop() {
         let (ops, _) = compile(",[-],[+],[---],[+++++]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In, Op::Set(0),
-            Op::In, Op::Set(0),
-            Op::In, Op::Set(0),
-            Op::In, Op::Set(0),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::In,
+                Op::Set(0),
+                Op::In,
+                Op::Set(0),
+                Op::In,
+                Op::Set(0),
+                Op::In,
+                Op::Set(0),
+            ]
+        );
 
         let (ops, _) = compile(",[++],[+++]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In, Op::Open(3), Op::Add(2), Op::Close(1),
-            Op::In, Op::Set(0),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::In,
+                Op::Open(3),
+                Op::Add(2),
+                Op::Close(1),
+                Op::In,
+                Op::Set(0),
+            ]
+        );
     }
 
     // Clear loops -> Set(0), and Set is merged with Add, and Set.
     #[test]
     fn test_clear_loop_with_add() {
         let (ops, _) = compile(",[-]><++++++++++").unwrap();
-        assert_eq!(ops, vec![
-            Op::In, Op::Set(10),
-        ]);
+        assert_eq!(ops, vec![Op::In, Op::Set(10),]);
 
         let (ops, _) = compile("++++[-]---+").unwrap();
-        assert_eq!(ops, vec![
-            Op::Set(254),
-        ]);
+        assert_eq!(ops, vec![Op::Set(254),]);
 
         let (ops, _) = compile("++++[-]---+[+++]+").unwrap();
-        assert_eq!(ops, vec![
-            Op::Set(1),
-        ]);
+        assert_eq!(ops, vec![Op::Set(1),]);
     }
 
     // Multiplication loops -> Mul op
     #[test]
     fn test_mul_loop() {
         let (ops, _) = compile(",[->>++>+++>+<<<<]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In,
-            Op::Mul(2, 2),
-            Op::Mul(3, 3),
-            Op::Mul(4, 1),
-            Op::Set(0),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::In,
+                Op::Mul(2, 2),
+                Op::Mul(3, 3),
+                Op::Mul(4, 1),
+                Op::Set(0),
+            ]
+        );
 
         let (ops, _) = compile(",[->+<]").unwrap();
         assert_eq!(ops, vec![Op::In, Op::Mul(1, 1), Op::Set(0)]);
@@ -396,13 +442,10 @@ mod tests {
         assert_eq!(ops, vec![Op::In, Op::Set(0)]);
 
         let (ops, _) = compile(",[->>][>+<-]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In,
-            Op::Open(4),
-            Op::Add(255),
-            Op::Move(2),
-            Op::Close(1),
-        ]);
+        assert_eq!(
+            ops,
+            vec![Op::In, Op::Open(4), Op::Add(255), Op::Move(2), Op::Close(1),]
+        );
 
         let (ops, _) = compile(",[>][+++]").unwrap();
         assert_eq!(ops, vec![Op::In, Op::Scan(1)]);
@@ -418,58 +461,121 @@ mod tests {
     #[test]
     fn test_scan() {
         let (ops, _) = compile(",[>],[<],[>>],[<<<]").unwrap();
-        assert_eq!(ops, vec![
-            Op::In, Op::Scan(1),
-            Op::In, Op::Scan(-1),
-            Op::In, Op::Scan(2),
-            Op::In, Op::Scan(-3),
-        ]);
+        assert_eq!(
+            ops,
+            vec![
+                Op::In,
+                Op::Scan(1),
+                Op::In,
+                Op::Scan(-1),
+                Op::In,
+                Op::Scan(2),
+                Op::In,
+                Op::Scan(-3),
+            ]
+        );
     }
 
     // Compilation error on unmatched open
     #[test]
     fn test_unmatched_open() {
         let err = compile(",\n\n[+").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedOpen {
-            span: Span { start: 3, end: 4, line: 3, col: 1 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedOpen {
+                span: Span {
+                    start: 3,
+                    end: 4,
+                    line: 3,
+                    col: 1
+                }
+            }
+        );
 
         let err = compile(",[[+").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedOpen {
-            span: Span { start: 2, end: 3, line: 1, col: 3 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedOpen {
+                span: Span {
+                    start: 2,
+                    end: 3,
+                    line: 1,
+                    col: 3
+                }
+            }
+        );
     }
 
     // Compilation error on unmatched close
     #[test]
     fn test_unmatched_close() {
         let err = compile(",]").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedClose {
-            span: Span { start: 1, end: 2, line: 1, col: 2 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedClose {
+                span: Span {
+                    start: 1,
+                    end: 2,
+                    line: 1,
+                    col: 2
+                }
+            }
+        );
 
         let err = compile("+\n\n+]").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedClose {
-            span: Span { start: 4, end: 5, line: 3, col: 2 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedClose {
+                span: Span {
+                    start: 4,
+                    end: 5,
+                    line: 3,
+                    col: 2
+                }
+            }
+        );
     }
 
     // Few tests for line and column tracking
     #[test]
     fn test_error_line_column() {
         let err = compile("++\n>>\n[").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedOpen {
-            span: Span { start: 6, end: 7, line: 3, col: 1 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedOpen {
+                span: Span {
+                    start: 6,
+                    end: 7,
+                    line: 3,
+                    col: 1
+                }
+            }
+        );
 
         let err = compile("++\n>>]").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedClose {
-            span: Span { start: 5, end: 6, line: 2, col: 3 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedClose {
+                span: Span {
+                    start: 5,
+                    end: 6,
+                    line: 2,
+                    col: 3
+                }
+            }
+        );
 
         let err = compile("+++\n[\n>+\n]>]").unwrap_err();
-        assert_eq!(err, CompileError::UnmatchedClose {
-            span: Span { start: 11, end: 12, line: 4, col: 3 }
-        });
+        assert_eq!(
+            err,
+            CompileError::UnmatchedClose {
+                span: Span {
+                    start: 11,
+                    end: 12,
+                    line: 4,
+                    col: 3
+                }
+            }
+        );
     }
 }

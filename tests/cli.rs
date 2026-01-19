@@ -18,7 +18,8 @@ fn batch_results(output: &[u8]) -> Vec<Value> {
 }
 
 fn batch_input(items: &[Value]) -> String {
-    items.iter()
+    items
+        .iter()
         .map(|v| serde_json::to_string(v).unwrap() + "\n")
         .collect()
 }
@@ -336,14 +337,19 @@ fn test_batch_cfg_op_limit() {
     let out = cmd()
         .arg("tests/programs/factor.b")
         .arg("--batch")
-        .write_stdin(batch_input(&[json!({"input": [50, 10], "config": {"op_limit": 10}})]))
+        .write_stdin(batch_input(&[
+            json!({"input": [50, 10], "config": {"op_limit": 10}}),
+        ]))
         .output()
         .unwrap();
 
     let results = batch_results(&out.stdout);
     assert_eq!(results.len(), 1);
     assert_eq!(results[0]["ok"], false);
-    assert!(results[0]["error"].as_str().unwrap().contains("operation limit exceeded"));
+    assert!(results[0]["error"]
+        .as_str()
+        .unwrap()
+        .contains("operation limit exceeded"));
 }
 
 #[test]
@@ -351,7 +357,9 @@ fn test_batch_cfg_eof() {
     let out = cmd()
         .arg("tests/programs/echo.b")
         .arg("--batch")
-        .write_stdin(batch_input(&[json!({"input": [], "config": {"eof_behavior": "max"}})]))
+        .write_stdin(batch_input(&[
+            json!({"input": [], "config": {"eof_behavior": "max"}}),
+        ]))
         .output()
         .unwrap();
 
@@ -439,5 +447,8 @@ fn test_batch_runtime_error() {
     assert_eq!(results.len(), 1);
     assert_eq!(results[0]["id"], "err");
     assert_eq!(results[0]["ok"], false);
-    assert!(results[0]["error"].as_str().unwrap().contains("pointer underflow"));
+    assert!(results[0]["error"]
+        .as_str()
+        .unwrap()
+        .contains("pointer underflow"));
 }

@@ -1,5 +1,5 @@
-use std::io::{Read, Write};
 use crate::{Config, EofBehavior, ExecutionError, ExecutionResult, Op, Span};
+use std::io::{Read, Write};
 
 pub(crate) fn execute(
     ops: &[Op],
@@ -152,7 +152,12 @@ mod tests {
     use super::*;
     use crate::Config;
 
-    const S: Span = Span { start: 0, end: 0, line: 0, col: 0 };
+    const S: Span = Span {
+        start: 0,
+        end: 0,
+        line: 0,
+        col: 0,
+    };
 
     fn spans(n: usize) -> Vec<Span> {
         vec![S; n]
@@ -172,14 +177,20 @@ mod tests {
         let result = execute(&ops, &sp, vec![1, 2, 3, 0, 5], 0, &cfg(), None, None).unwrap();
         assert_eq!(result.pointer, 3);
         let result = execute(&ops, &sp, vec![1, 2, 3, 4, 5], 1, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerOverflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerOverflow { .. })
+        ));
 
         // stride -1
         let ops = vec![Op::Scan(-1)];
         let result = execute(&ops, &sp, vec![0, 0, 3, 255, 5], 4, &cfg(), None, None).unwrap();
         assert_eq!(result.pointer, 1);
         let result = execute(&ops, &sp, vec![1, 2, 3, 4, 5], 1, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerUnderflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerUnderflow { .. })
+        ));
     }
 
     // Scans with stride > 1
@@ -191,21 +202,30 @@ mod tests {
         let result = execute(&ops, &sp, vec![1, 2, 3, 4, 0, 6], 0, &cfg(), None, None).unwrap();
         assert_eq!(result.pointer, 4);
         let result = execute(&ops, &sp, vec![1, 0, 3, 4, 5, 6], 0, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerOverflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerOverflow { .. })
+        ));
 
         // stride -2
         let ops = vec![Op::Scan(-2)];
         let result = execute(&ops, &sp, vec![0, 1, 2, 3, 4], 4, &cfg(), None, None).unwrap();
         assert_eq!(result.pointer, 0);
         let result = execute(&ops, &sp, vec![1, 1, 2, 3, 4], 3, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerUnderflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerUnderflow { .. })
+        ));
 
         // stride -3
         let ops = vec![Op::Scan(-3)];
         let result = execute(&ops, &sp, vec![1, 2, 0, 4, 5, 6], 5, &cfg(), None, None).unwrap();
         assert_eq!(result.pointer, 2);
         let result = execute(&ops, &sp, vec![1, 2, 3, 4, 5, 6], 5, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerUnderflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerUnderflow { .. })
+        ));
     }
 
     #[test]
@@ -239,24 +259,60 @@ mod tests {
     #[test]
     fn test_set() {
         let sp = spans(1);
-        let result = execute(&vec![Op::Set(42)], &sp, vec![100, 0, 0], 0, &cfg(), None, None).unwrap();
+        let result = execute(
+            &vec![Op::Set(42)],
+            &sp,
+            vec![100, 0, 0],
+            0,
+            &cfg(),
+            None,
+            None,
+        )
+        .unwrap();
         assert_eq!(result.tape, vec![42, 0, 0]);
 
-        let result = execute(&vec![Op::Set(0)], &sp, vec![0, 255, 0], 1, &cfg(), None, None).unwrap();
+        let result = execute(
+            &vec![Op::Set(0)],
+            &sp,
+            vec![0, 255, 0],
+            1,
+            &cfg(),
+            None,
+            None,
+        )
+        .unwrap();
         assert_eq!(result.tape, vec![0, 0, 0]);
 
         let sp = spans(3);
-        let result = execute(&vec![Op::Set(10), Op::Set(20), Op::Set(30)], &sp, vec![0], 0, &cfg(), None, None).unwrap();
+        let result = execute(
+            &vec![Op::Set(10), Op::Set(20), Op::Set(30)],
+            &sp,
+            vec![0],
+            0,
+            &cfg(),
+            None,
+            None,
+        )
+        .unwrap();
         assert_eq!(result.tape, vec![30]);
     }
 
     #[test]
     fn test_error_pointer_overflow() {
         let ops = vec![Op::Move(10)];
-        let sp = vec![Span { start: 5, end: 15, line: 2, col: 3 }];
+        let sp = vec![Span {
+            start: 5,
+            end: 15,
+            line: 2,
+            col: 3,
+        }];
         let result = execute(&ops, &sp, vec![0; 5], 0, &cfg(), None, None);
         match result {
-            Err(ExecutionError::PointerOverflow { span, pointer, tape_len }) => {
+            Err(ExecutionError::PointerOverflow {
+                span,
+                pointer,
+                tape_len,
+            }) => {
                 assert_eq!(span.line, 2);
                 assert_eq!(span.col, 3);
                 assert_eq!(pointer, 10);
@@ -269,7 +325,12 @@ mod tests {
     #[test]
     fn test_error_pointer_underflow() {
         let ops = vec![Op::Move(-5)];
-        let sp = vec![Span { start: 0, end: 5, line: 1, col: 10 }];
+        let sp = vec![Span {
+            start: 0,
+            end: 5,
+            line: 1,
+            col: 10,
+        }];
         let result = execute(&ops, &sp, vec![0; 5], 2, &cfg(), None, None);
         match result {
             Err(ExecutionError::PointerUnderflow { span }) => {
@@ -284,25 +345,50 @@ mod tests {
     fn test_error_mul_out_of_bounds() {
         // Mul target beyond tape
         let ops = vec![Op::Mul(10, 1)];
-        let sp = vec![Span { start: 0, end: 5, line: 1, col: 1 }];
+        let sp = vec![Span {
+            start: 0,
+            end: 5,
+            line: 1,
+            col: 1,
+        }];
         let result = execute(&ops, &sp, vec![1, 0, 0], 0, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerOverflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerOverflow { .. })
+        ));
 
         // Mul target before tape
         let ops = vec![Op::Mul(-5, 1)];
-        let sp = vec![Span { start: 0, end: 5, line: 1, col: 1 }];
+        let sp = vec![Span {
+            start: 0,
+            end: 5,
+            line: 1,
+            col: 1,
+        }];
         let result = execute(&ops, &sp, vec![1, 0, 0], 1, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerUnderflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerUnderflow { .. })
+        ));
     }
 
     #[test]
     fn test_error_scan_overflow() {
         // Forward scan with no zero
         let ops = vec![Op::Scan(1)];
-        let sp = vec![Span { start: 2, end: 5, line: 3, col: 7 }];
+        let sp = vec![Span {
+            start: 2,
+            end: 5,
+            line: 3,
+            col: 7,
+        }];
         let result = execute(&ops, &sp, vec![1, 2, 3], 0, &cfg(), None, None);
         match result {
-            Err(ExecutionError::PointerOverflow { span, pointer, tape_len }) => {
+            Err(ExecutionError::PointerOverflow {
+                span,
+                pointer,
+                tape_len,
+            }) => {
                 assert_eq!(span.line, 3);
                 assert_eq!(span.col, 7);
                 assert_eq!(pointer, 3);
@@ -318,7 +404,14 @@ mod tests {
         let ops = vec![Op::Move(5)];
         let sp = spans(1);
         let result = execute(&ops, &sp, vec![0; 3], 0, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerOverflow { tape_len: 3, pointer: 5, .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerOverflow {
+                tape_len: 3,
+                pointer: 5,
+                ..
+            })
+        ));
 
         // Same move succeeds with larger tape
         let result = execute(&ops, &sp, vec![0; 10], 0, &cfg(), None, None);
@@ -332,7 +425,10 @@ mod tests {
         let ops = vec![Op::Move(-3)];
         let sp = spans(1);
         let result = execute(&ops, &sp, vec![0; 5], 2, &cfg(), None, None);
-        assert!(matches!(result, Err(ExecutionError::PointerUnderflow { .. })));
+        assert!(matches!(
+            result,
+            Err(ExecutionError::PointerUnderflow { .. })
+        ));
 
         // Same move succeeds with different starting pointer
         let result = execute(&ops, &sp, vec![0; 5], 4, &cfg(), None, None);
@@ -356,17 +452,26 @@ mod tests {
 
         // With cell 0 = 10, loop runs 10 times = 50 ops (5 ops * 10 iterations)
         // Plus final Open check = 51 ops total
-        let config_limited = Config { op_limit: Some(30), ..Default::default() };
+        let config_limited = Config {
+            op_limit: Some(30),
+            ..Default::default()
+        };
         let result = execute(&ops, &sp, vec![10, 0], 0, &config_limited, None, None);
         assert!(matches!(result, Err(ExecutionError::OperationLimit { .. })));
 
         // With higher limit, it succeeds
-        let config_ok = Config { op_limit: Some(100), ..Default::default() };
+        let config_ok = Config {
+            op_limit: Some(100),
+            ..Default::default()
+        };
         let result = execute(&ops, &sp, vec![10, 0], 0, &config_ok, None, None);
         assert!(result.is_ok());
 
         // With no limit (None), it succeeds
-        let config_unlimited = Config { op_limit: None, ..Default::default() };
+        let config_unlimited = Config {
+            op_limit: None,
+            ..Default::default()
+        };
         let result = execute(&ops, &sp, vec![10, 0], 0, &config_unlimited, None, None);
         assert!(result.is_ok());
     }
@@ -376,7 +481,10 @@ mod tests {
         use crate::EofBehavior;
         let ops = vec![Op::In];
         let sp = spans(1);
-        let config = Config { eof_behavior: EofBehavior::Zero, ..Default::default() };
+        let config = Config {
+            eof_behavior: EofBehavior::Zero,
+            ..Default::default()
+        };
 
         let mut input: &[u8] = &[];
         let result = execute(&ops, &sp, vec![42], 0, &config, Some(&mut input), None).unwrap();
@@ -388,7 +496,10 @@ mod tests {
         use crate::EofBehavior;
         let ops = vec![Op::In];
         let sp = spans(1);
-        let config = Config { eof_behavior: EofBehavior::Unchanged, ..Default::default() };
+        let config = Config {
+            eof_behavior: EofBehavior::Unchanged,
+            ..Default::default()
+        };
 
         let mut input: &[u8] = &[];
         let result = execute(&ops, &sp, vec![42], 0, &config, Some(&mut input), None).unwrap();
@@ -400,7 +511,10 @@ mod tests {
         use crate::EofBehavior;
         let ops = vec![Op::In];
         let sp = spans(1);
-        let config = Config { eof_behavior: EofBehavior::MaxValue, ..Default::default() };
+        let config = Config {
+            eof_behavior: EofBehavior::MaxValue,
+            ..Default::default()
+        };
 
         let mut input: &[u8] = &[];
         let result = execute(&ops, &sp, vec![42], 0, &config, Some(&mut input), None).unwrap();
@@ -413,10 +527,13 @@ mod tests {
         let ops = vec![Op::In, Op::Move(1), Op::In];
         let sp = spans(3);
 
-        let config = Config { eof_behavior: EofBehavior::Zero, ..Default::default() };
+        let config = Config {
+            eof_behavior: EofBehavior::Zero,
+            ..Default::default()
+        };
         let mut input: &[u8] = &[65]; // only one byte available
         let result = execute(&ops, &sp, vec![0, 99], 0, &config, Some(&mut input), None).unwrap();
         assert_eq!(result.tape[0], 65); // 'A'
-        assert_eq!(result.tape[1], 0);  // EOF -> Zero
+        assert_eq!(result.tape[1], 0); // EOF -> Zero
     }
 }
