@@ -53,10 +53,21 @@ pub struct Span {
 /// Runtime error
 #[derive(Debug)]
 pub enum ExecutionError {
-    PointerUnderflow { span: Span },
-    PointerOverflow { span: Span, pointer: usize, tape_len: usize },
-    OperationLimit { span: Span },
-    IoError { span: Span, source: std::io::Error },
+    PointerUnderflow {
+        span: Span,
+    },
+    PointerOverflow {
+        span: Span,
+        pointer: usize,
+        tape_len: usize,
+    },
+    OperationLimit {
+        span: Span,
+    },
+    IoError {
+        span: Span,
+        source: std::io::Error,
+    },
 }
 
 impl PartialEq for ExecutionError {
@@ -67,16 +78,30 @@ impl PartialEq for ExecutionError {
                 ExecutionError::PointerUnderflow { span: b },
             ) => a == b,
             (
-                ExecutionError::PointerOverflow { span: a, pointer: pa, tape_len: ta },
-                ExecutionError::PointerOverflow { span: b, pointer: pb, tape_len: tb },
+                ExecutionError::PointerOverflow {
+                    span: a,
+                    pointer: pa,
+                    tape_len: ta,
+                },
+                ExecutionError::PointerOverflow {
+                    span: b,
+                    pointer: pb,
+                    tape_len: tb,
+                },
             ) => a == b && pa == pb && ta == tb,
             (
                 ExecutionError::OperationLimit { span: a },
                 ExecutionError::OperationLimit { span: b },
             ) => a == b,
             (
-                ExecutionError::IoError { span: a, source: sa },
-                ExecutionError::IoError { span: b, source: sb },
+                ExecutionError::IoError {
+                    span: a,
+                    source: sa,
+                },
+                ExecutionError::IoError {
+                    span: b,
+                    source: sb,
+                },
             ) => a == b && sa.kind() == sb.kind(),
             _ => false,
         }
@@ -87,9 +112,17 @@ impl std::fmt::Display for ExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExecutionError::PointerUnderflow { span } => {
-                write!(f, "pointer underflow at line {}, column {}", span.line, span.col)
+                write!(
+                    f,
+                    "pointer underflow at line {}, column {}",
+                    span.line, span.col
+                )
             }
-            ExecutionError::PointerOverflow { span, pointer, tape_len } => {
+            ExecutionError::PointerOverflow {
+                span,
+                pointer,
+                tape_len,
+            } => {
                 write!(
                     f,
                     "pointer overflow: position {} exceeds tape length {} (at line {}, column {})",
@@ -97,10 +130,18 @@ impl std::fmt::Display for ExecutionError {
                 )
             }
             ExecutionError::OperationLimit { span } => {
-                write!(f, "operation limit exceeded at line {}, column {}", span.line, span.col)
+                write!(
+                    f,
+                    "operation limit exceeded at line {}, column {}",
+                    span.line, span.col
+                )
             }
             ExecutionError::IoError { span, source } => {
-                write!(f, "I/O error at line {}, column {}: {}", span.line, span.col, source)
+                write!(
+                    f,
+                    "I/O error at line {}, column {}: {}",
+                    span.line, span.col, source
+                )
             }
         }
     }
@@ -126,10 +167,18 @@ impl std::fmt::Display for CompileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CompileError::UnmatchedOpen { span } => {
-                write!(f, "unmatched '[' at line {}, column {}", span.line, span.col)
+                write!(
+                    f,
+                    "unmatched '[' at line {}, column {}",
+                    span.line, span.col
+                )
             }
             CompileError::UnmatchedClose { span } => {
-                write!(f, "unmatched ']' at line {}, column {}", span.line, span.col)
+                write!(
+                    f,
+                    "unmatched ']' at line {}, column {}",
+                    span.line, span.col
+                )
             }
         }
     }
@@ -194,7 +243,9 @@ mod tests {
     fn test_hello_world() {
         let program = Program::from_source("++++++++[->++[->++++<]<]>>.----[------>+<]>.").unwrap();
         let mut output = Vec::new();
-        program.run(&Config::default(), None, None, None, Some(&mut output)).unwrap();
+        program
+            .run(&Config::default(), None, None, None, Some(&mut output))
+            .unwrap();
         assert_eq!(String::from_utf8(output).unwrap(), "@\n");
     }
 }

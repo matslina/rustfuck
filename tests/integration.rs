@@ -7,7 +7,13 @@ fn run_program(source: &str, input: &[u8], config: &Config) -> Vec<u8> {
     let mut output = Vec::new();
     let mut input_slice = input;
     program
-        .run(config, None, None, Some(&mut input_slice), Some(&mut output))
+        .run(
+            config,
+            None,
+            None,
+            Some(&mut input_slice),
+            Some(&mut output),
+        )
         .expect("failed to run");
     output
 }
