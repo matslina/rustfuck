@@ -578,4 +578,50 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_push_and_compact_move_overflow() {
+        let mut ops = vec![Op::Move(i32::MAX)];
+        let mut spans = vec![Span {
+            start: 0,
+            end: 1,
+            line: 1,
+            col: 1,
+        }];
+        let new_span = Span {
+            start: 1,
+            end: 2,
+            line: 1,
+            col: 2,
+        };
+
+        push_and_compact(&mut ops, &mut spans, Op::Move(1), new_span);
+
+        assert_eq!(ops.len(), 2);
+        assert_eq!(ops[0], Op::Move(i32::MAX));
+        assert_eq!(ops[1], Op::Move(1));
+    }
+
+    #[test]
+    fn test_push_and_compact_move_negative_overflow() {
+        let mut ops = vec![Op::Move(i32::MIN)];
+        let mut spans = vec![Span {
+            start: 0,
+            end: 1,
+            line: 1,
+            col: 1,
+        }];
+        let new_span = Span {
+            start: 1,
+            end: 2,
+            line: 1,
+            col: 2,
+        };
+
+        push_and_compact(&mut ops, &mut spans, Op::Move(-1), new_span);
+
+        assert_eq!(ops.len(), 2);
+        assert_eq!(ops[0], Op::Move(i32::MIN));
+        assert_eq!(ops[1], Op::Move(-1));
+    }
 }

@@ -307,19 +307,20 @@ mod tests {
             col: 3,
         }];
         let result = execute(&ops, &sp, vec![0; 5], 0, &cfg(), None, None);
-        match result {
+
+        assert_eq!(
+            result,
             Err(ExecutionError::PointerOverflow {
-                span,
-                pointer,
-                tape_len,
-            }) => {
-                assert_eq!(span.line, 2);
-                assert_eq!(span.col, 3);
-                assert_eq!(pointer, 10);
-                assert_eq!(tape_len, 5);
-            }
-            _ => panic!("expected PointerOverflow"),
-        }
+                span: Span {
+                    start: 5,
+                    end: 15,
+                    line: 2,
+                    col: 3
+                },
+                pointer: 10,
+                tape_len: 5,
+            })
+        );
     }
 
     #[test]
@@ -332,13 +333,18 @@ mod tests {
             col: 10,
         }];
         let result = execute(&ops, &sp, vec![0; 5], 2, &cfg(), None, None);
-        match result {
-            Err(ExecutionError::PointerUnderflow { span }) => {
-                assert_eq!(span.line, 1);
-                assert_eq!(span.col, 10);
-            }
-            _ => panic!("expected PointerUnderflow"),
-        }
+
+        assert_eq!(
+            result,
+            Err(ExecutionError::PointerUnderflow {
+                span: Span {
+                    start: 0,
+                    end: 5,
+                    line: 1,
+                    col: 10
+                },
+            })
+        );
     }
 
     #[test]
@@ -535,5 +541,76 @@ mod tests {
         let result = execute(&ops, &sp, vec![0, 99], 0, &config, Some(&mut input), None).unwrap();
         assert_eq!(result.tape[0], 65); // 'A'
         assert_eq!(result.tape[1], 0); // EOF -> Zero
+    }
+
+    struct FailingWriter;
+    impl std::io::Write for FailingWriter {
+        fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "write failed"))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "flush failed"))
+        }
+    }
+
+    struct FailingReader;
+    impl std::io::Read for FailingReader {
+        fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "read failed"))
+        }
+    }
+
+    struct WriteOkFlushFails {
+        written: bool,
+    }
+    impl std::io::Write for WriteOkFlushFails {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.written = true;
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            if self.written {
+                Err(std::io::Error::new(std::io::ErrorKind::Other, "flush failed"))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    #[test]
+    fn test_io_error_write_fails() {
+        let ops = vec![Op::Out];
+        let sp = spans(1);
+        let mut writer = FailingWriter;
+        let result = execute(&ops, &sp, vec![65], 0, &cfg(), None, Some(&mut writer));
+        assert!(matches!(result, Err(ExecutionError::IoError { .. })));
+    }
+
+    #[test]
+    fn test_io_error_flush_fails() {
+        let ops = vec![Op::Out];
+        let sp = spans(1);
+        let config = Config {
+            flush_output: true,
+            ..Default::default()
+        };
+        let mut writer = WriteOkFlushFails { written: false };
+        let result = execute(&ops, &sp, vec![65], 0, &config, None, Some(&mut writer));
+        assert!(matches!(result, Err(ExecutionError::IoError { .. })));
+    }
+
+    #[test]
+    fn test_io_error_read_fails() {
+        let ops = vec![Op::In];
+        let sp = spans(1);
+        let mut reader = FailingReader;
+        let result = execute(&ops, &sp, vec![0], 0, &cfg(), Some(&mut reader), None);
+
+        // Use == to exercise PartialEq (compares span and error kind)
+        let expected = ExecutionError::IoError {
+            span: S,
+            source: std::io::Error::new(std::io::ErrorKind::Other, "different msg ok"),
+        };
+        assert_eq!(result.unwrap_err(), expected);
     }
 }
