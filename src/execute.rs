@@ -546,17 +546,26 @@ mod tests {
     struct FailingWriter;
     impl std::io::Write for FailingWriter {
         fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "write failed"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "write failed",
+            ))
         }
         fn flush(&mut self) -> std::io::Result<()> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "flush failed"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "flush failed",
+            ))
         }
     }
 
     struct FailingReader;
     impl std::io::Read for FailingReader {
         fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "read failed"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "read failed",
+            ))
         }
     }
 
@@ -570,7 +579,10 @@ mod tests {
         }
         fn flush(&mut self) -> std::io::Result<()> {
             if self.written {
-                Err(std::io::Error::new(std::io::ErrorKind::Other, "flush failed"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "flush failed",
+                ))
             } else {
                 Ok(())
             }
