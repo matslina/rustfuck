@@ -1,6 +1,7 @@
 # rustfuck
 
 [![CI](https://github.com/matslina/rustfuck/actions/workflows/ci.yml/badge.svg)](https://github.com/matslina/rustfuck/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/matslina/rustfuck/graph/badge.svg)](https://codecov.io/gh/matslina/rustfuck)
 
 A brainfuck interpreter in Rust.
 
