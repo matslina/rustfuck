@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use rustfuck::{Config, EofBehavior, Program};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -23,8 +23,21 @@ impl From<EofArg> for EofBehavior {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "rustfuck", about = "A brainfuck interpreter")]
-struct Args {
+#[command(name = "rustfuck")]
+#[command(about = "A brainfuck interpreter")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Run a brainfuck program
+    Run(RunArgs),
+}
+
+#[derive(Parser, Debug)]
+struct RunArgs {
     /// Path to brainfuck source file
     program: PathBuf,
 
@@ -197,7 +210,7 @@ fn run_batch(program: &Program, base_config: &Config) {
     }
 }
 
-fn run_normal(program: &Program, config: &Config, args: &Args) -> Result<(), String> {
+fn run_normal(program: &Program, config: &Config, args: &RunArgs) -> Result<(), String> {
     let input: Box<dyn io::Read> = if let Some(path) = &args.input {
         Box::new(fs::File::open(path).map_err(|e| format!("failed to open input file: {}", e))?)
     } else {
@@ -223,39 +236,43 @@ fn run_normal(program: &Program, config: &Config, args: &Args) -> Result<(), Str
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    let source = match fs::read_to_string(&args.program) {
-        Ok(s) => s,
-        Err(e) => {
-            if e.kind() == io::ErrorKind::NotFound {
-                eprintln!("Error: file not found: {}", args.program.display());
-            } else {
-                eprintln!("Error reading {}: {}", args.program.display(), e);
+    match cli.command {
+        Commands::Run(args) => {
+            let source = match fs::read_to_string(&args.program) {
+                Ok(s) => s,
+                Err(e) => {
+                    if e.kind() == io::ErrorKind::NotFound {
+                        eprintln!("Error: file not found: {}", args.program.display());
+                    } else {
+                        eprintln!("Error reading {}: {}", args.program.display(), e);
+                    }
+                    std::process::exit(1);
+                }
+            };
+
+            let program = match Program::from_source(&source) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("Compile error: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            let config = Config {
+                tape_size: args.tape_size,
+                op_limit: args.op_limit,
+                eof_behavior: args.eof.into(),
+                flush_output: !args.batch,
+            };
+
+            if args.batch {
+                run_batch(&program, &config);
+            } else if let Err(e) = run_normal(&program, &config, &args) {
+                eprintln!("Runtime error: {}", e);
+                std::process::exit(1);
             }
-            std::process::exit(1);
         }
-    };
-
-    let program = match Program::from_source(&source) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("Compile error: {}", e);
-            std::process::exit(1);
-        }
-    };
-
-    let config = Config {
-        tape_size: args.tape_size,
-        op_limit: args.op_limit,
-        eof_behavior: args.eof.into(),
-        flush_output: !args.batch,
-    };
-
-    if args.batch {
-        run_batch(&program, &config);
-    } else if let Err(e) = run_normal(&program, &config, &args) {
-        eprintln!("Runtime error: {}", e);
-        std::process::exit(1);
     }
 }
