@@ -358,14 +358,24 @@ fn test_batch_cfg_eof() {
         .arg("tests/programs/echo.b")
         .arg("--batch")
         .write_stdin(batch_input(&[
-            json!({"input": [], "config": {"eof_behavior": "max"}}),
+            json!({"id": "max", "input": [], "config": {"eof_behavior": "max"}}),
+            json!({"id": "zero", "input": [], "config": {"eof_behavior": "zero"}}),
+            json!({"id": "unchanged", "input": [], "tape": [42], "config": {"eof_behavior": "unchanged"}}),
+            json!({"id": "default", "input": []}),
+            json!({"id": "invalid", "input": [], "config": {"eof_behavior": "invalid_value"}}),
         ]))
         .output()
         .unwrap();
 
     assert_eq!(
         batch_results(&out.stdout),
-        vec![json!({"ok": true, "tape": [255], "pointer": 0, "output": [255]})]
+        vec![
+            json!({"id": "max", "ok": true, "tape": [255], "pointer": 0, "output": [255]}),
+            json!({"id": "zero", "ok": true, "tape": [], "pointer": 0, "output": [0]}),
+            json!({"id": "unchanged", "ok": true, "tape": [42], "pointer": 0, "output": [42]}),
+            json!({"id": "default", "ok": true, "tape": [], "pointer": 0, "output": [0]}),
+            json!({"id": "invalid", "ok": true, "tape": [], "pointer": 0, "output": [0]}),
+        ]
     );
 }
 
@@ -451,4 +461,37 @@ fn test_batch_runtime_error() {
         .as_str()
         .unwrap()
         .contains("pointer underflow"));
+}
+
+#[test]
+fn test_compile_error_unmatched_close() {
+    cmd()
+        .arg("tests/programs/unmatched_close.b")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Compile error"))
+        .stderr(predicate::str::contains("unmatched ']'"));
+}
+
+#[test]
+#[cfg(unix)]
+fn test_file_permission_denied() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut program = NamedTempFile::new().unwrap();
+    write!(program, "+").unwrap();
+
+    let mut perms = program.as_file().metadata().unwrap().permissions();
+    perms.set_mode(0o000);
+    program.as_file().set_permissions(perms).unwrap();
+
+    cmd()
+        .arg(program.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Error reading"));
+
+    let mut perms = program.as_file().metadata().unwrap().permissions();
+    perms.set_mode(0o644);
+    program.as_file().set_permissions(perms).unwrap();
 }
