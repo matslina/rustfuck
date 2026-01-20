@@ -14,13 +14,13 @@ cargo build --release
 ## Usage
 
 ```
-rustfuck program.b
+rustfuck run program.b
 ```
 
 Input/output can be redirected to files:
 
 ```
-rustfuck program.b -i input.txt -o output.txt
+rustfuck run program.b -i input.txt -o output.txt
 ```
 
 ### Options
@@ -34,7 +34,7 @@ rustfuck program.b -i input.txt -o output.txt
 For running multiple inputs against the same program:
 
 ```
-echo '{"input": [72, 101, 108, 108, 111]}' | rustfuck program.b --batch
+echo '{"input": [72, 101, 108, 108, 111]}' | rustfuck run program.b --batch
 ```
 
 Reads newline-delimited JSON from stdin, outputs one JSON result per line.

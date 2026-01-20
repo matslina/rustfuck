@@ -35,6 +35,13 @@ fn test_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("brainfuck interpreter"))
+        .stdout(predicate::str::contains("run"));
+
+    cmd()
+        .arg("run")
+        .arg("--help")
+        .assert()
+        .success()
         .stdout(predicate::str::contains("--batch"));
 }
 
@@ -45,6 +52,7 @@ fn test_help() {
 #[test]
 fn test_io_stdin_stdout() {
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .write_stdin("X")
         .assert()
@@ -58,6 +66,7 @@ fn test_io_file_in() {
     write!(input_file, "Y").unwrap();
 
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("-i")
         .arg(input_file.path())
@@ -71,6 +80,7 @@ fn test_io_file_out() {
     let output_file = NamedTempFile::new().unwrap();
 
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .write_stdin("Z")
         .arg("-o")
@@ -89,6 +99,7 @@ fn test_io_file_in_and_out() {
     let output_file = NamedTempFile::new().unwrap();
 
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("-i")
         .arg(input_file.path())
@@ -108,6 +119,7 @@ fn test_io_file_in_and_out() {
 #[test]
 fn test_cfg_memory_success() {
     cmd()
+        .arg("run")
         .arg("tests/programs/memoryhog.b")
         .arg("-m")
         .arg("65536")
@@ -118,6 +130,7 @@ fn test_cfg_memory_success() {
 #[test]
 fn test_cfg_memory_exceeded() {
     cmd()
+        .arg("run")
         .arg("tests/programs/memoryhog.b")
         .arg("-m")
         .arg("65534")
@@ -129,6 +142,7 @@ fn test_cfg_memory_exceeded() {
 #[test]
 fn test_cfg_op_limit_success() {
     cmd()
+        .arg("run")
         .arg("tests/programs/basicops.b")
         .arg("-l")
         .arg("100")
@@ -139,6 +153,7 @@ fn test_cfg_op_limit_success() {
 #[test]
 fn test_cfg_op_limit_exceeded() {
     cmd()
+        .arg("run")
         .arg("tests/programs/basicops.b")
         .arg("-l")
         .arg("30")
@@ -153,6 +168,7 @@ fn test_cfg_eof_default() {
     write!(program, "++++,.").unwrap();
 
     cmd()
+        .arg("run")
         .arg(program.path())
         .write_stdin("")
         .assert()
@@ -163,6 +179,7 @@ fn test_cfg_eof_default() {
 #[test]
 fn test_cfg_eof_zero() {
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("-e")
         .arg("zero")
@@ -175,6 +192,7 @@ fn test_cfg_eof_zero() {
 #[test]
 fn test_cfg_eof_unchanged() {
     cmd()
+        .arg("run")
         .arg("tests/programs/endoffile.b")
         .arg("-e")
         .arg("unchanged")
@@ -185,6 +203,7 @@ fn test_cfg_eof_unchanged() {
 #[test]
 fn test_cfg_eof_max() {
     cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("-e")
         .arg("max")
@@ -201,6 +220,7 @@ fn test_cfg_eof_max() {
 #[test]
 fn test_batch_empty() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/empty.b")
         .arg("--batch")
         .write_stdin("{}\n")
@@ -216,6 +236,7 @@ fn test_batch_empty() {
 #[test]
 fn test_batch_id_preserved() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/empty.b")
         .arg("--batch")
         .write_stdin(batch_input(&[json!({"id": "foo"})]))
@@ -231,6 +252,7 @@ fn test_batch_id_preserved() {
 #[test]
 fn test_batch_multiple_lines() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("--batch")
         .write_stdin(batch_input(&[
@@ -254,6 +276,7 @@ fn test_batch_multiple_lines() {
 #[test]
 fn test_batch_empty_lines_skipped() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/empty.b")
         .arg("--batch")
         .write_stdin("{\"id\":\"a\"}\n\n\n{\"id\":\"b\"}\n")
@@ -275,6 +298,7 @@ fn test_batch_initial_state() {
     write!(program, "++++>,.").unwrap();
 
     let out = cmd()
+        .arg("run")
         .arg(program.path())
         .arg("--batch")
         .write_stdin(batch_input(&[
@@ -302,6 +326,7 @@ fn test_batch_trailing_zeros_trimmed() {
     write!(program, "++>>+>+>+>+>+>+>+[[-]<]").unwrap();
 
     let out = cmd()
+        .arg("run")
         .arg(program.path())
         .arg("--batch")
         .write_stdin(batch_input(&[json!({})]))
@@ -321,6 +346,7 @@ fn test_batch_trailing_zeros_trimmed() {
 #[test]
 fn test_batch_cfg_tape_size() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/memoryhog.b")
         .arg("--batch")
         .write_stdin(batch_input(&[json!({"config": {"tape_size": 65536}})]))
@@ -335,6 +361,7 @@ fn test_batch_cfg_tape_size() {
 #[test]
 fn test_batch_cfg_op_limit() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/factor.b")
         .arg("--batch")
         .write_stdin(batch_input(&[
@@ -355,6 +382,7 @@ fn test_batch_cfg_op_limit() {
 #[test]
 fn test_batch_cfg_eof() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/echo.b")
         .arg("--batch")
         .write_stdin(batch_input(&[
@@ -386,6 +414,7 @@ fn test_batch_cfg_eof() {
 #[test]
 fn test_missing_program_arg() {
     cmd()
+        .arg("run")
         .assert()
         .failure()
         .stderr(predicate::str::contains("required arguments"));
@@ -394,6 +423,7 @@ fn test_missing_program_arg() {
 #[test]
 fn test_missing_file() {
     cmd()
+        .arg("run")
         .arg("nonexistent.b")
         .assert()
         .failure()
@@ -403,6 +433,7 @@ fn test_missing_file() {
 #[test]
 fn test_compile_error() {
     cmd()
+        .arg("run")
         .arg("tests/programs/unmatched.b")
         .assert()
         .failure()
@@ -413,6 +444,7 @@ fn test_compile_error() {
 #[test]
 fn test_runtime_error() {
     cmd()
+        .arg("run")
         .arg("tests/programs/underflow.b")
         .assert()
         .failure()
@@ -423,6 +455,7 @@ fn test_runtime_error() {
 #[test]
 fn test_batch_invalid_json_with_recovery() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/empty.b")
         .arg("--batch")
         .write_stdin("not valid json\n{\"id\":\"after\"}\n")
@@ -447,6 +480,7 @@ fn test_batch_invalid_json_with_recovery() {
 #[test]
 fn test_batch_runtime_error() {
     let out = cmd()
+        .arg("run")
         .arg("tests/programs/underflow.b")
         .arg("--batch")
         .write_stdin(batch_input(&[json!({"id": "err"})]))
@@ -466,6 +500,7 @@ fn test_batch_runtime_error() {
 #[test]
 fn test_compile_error_unmatched_close() {
     cmd()
+        .arg("run")
         .arg("tests/programs/unmatched_close.b")
         .assert()
         .failure()
@@ -486,6 +521,7 @@ fn test_file_permission_denied() {
     program.as_file().set_permissions(perms).unwrap();
 
     cmd()
+        .arg("run")
         .arg(program.path())
         .assert()
         .failure()
